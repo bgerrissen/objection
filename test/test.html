@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Riot</title>
+		<style>
+		    body {font-family: Verdana, Arial, Sans-serif; font-size:11px;}
+		    p {margin: 0 0 1px 0;}
+			p.pass {
+			    background: green;
+			    font-weight: bold;
+                color: white;
+                padding: 2px;
+			}
+			
+			p.fail {
+			    background: red;
+			    font-weight: bold;
+                color: white;
+                padding: 2px;
+			} 
+            #test-results ul {
+			    margin-bottom: 1em
+			}
+		</style>
+		<script type="text/javascript" src="riot.js"></script>
+        <script type="text/javascript" src="../dist/objection.js"></script>
+		<script type="text/javascript" src="test.js"></script>
+	</head>
+	<body>
+		<div id="test-results">
+		</div>
+	</body>
+</html>
