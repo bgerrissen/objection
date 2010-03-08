@@ -1,5 +1,13 @@
 /**
- * @author Ben
+ * Object toolkit 'Objection'
+ * 
+ * @author Ben Gerrissen http://www.netben.nl/ bgerrissen@gmail.com
+ * @license MIT
+ * @release March 8th, 2010
+ * 
+ * 
+ * @version 1.0
+ * 
  */
 (function(global){
     
