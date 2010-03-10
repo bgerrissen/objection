@@ -94,7 +94,7 @@ Riot.run(function(){
     
     context('3. Objection#is test', function(){
         
-        var mammal = {};
+        mammal = {};
         var feline = Obj.create(mammal);
         var cat = Obj.create(feline);
         var canine = Obj.create(mammal);

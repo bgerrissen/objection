@@ -13,13 +13,42 @@
     
     
     var slice = Array.prototype.slice,
-        Factory = {},
-        Adapter = {};
+        Factory = {
+            initialise: function(){
+                this._target = {};
+                this._types = {};
+            },
+            create: function(type, properties){
+                if(type && !this._types[type]) {
+                    throw new TypeError();
+                }
+                return type ? api.create(this._types[type], properties, true) : api.create(this._target, properties, true);
+            },
+            addType: function(type, properties){
+                if(type && properties){
+                    this._types[type] = api.create(this._target, properties, true);
+                }
+                return this;
+            },
+            removeType: function(type){
+                delete this._types[type];
+                return this;
+            },
+            clear: function(){
+                this._types = {};
+                return this;
+            }
+        },
+        Adapter = {
+            initialise: function(){
+                this._target = {};
+            }
+        };
         
     var createAdapterMethod = function(method, adapter){
         return function(){
-            var result = method.apply(this._adaptedObject, arguments);
-            return result === this._adaptedObject ? adapter : result;
+            var result = method.apply(this._target, arguments);
+            return result === this._target ? adapter : result;
         }
     }
     
@@ -48,53 +77,22 @@
         },
         
         create: function(obj, properties){
-            if(Adapter.isPrototypeOf(obj)){
-                obj = create(obj);
-                obj._adaptedObject = create(obj._adaptedObject, properties);
-            } else if (Factory.isPrototypeOf(obj)){
-                obj = create(obj, properties);
-                obj._types = api.augment({}, obj._types);
-            } else {
-                obj = create(obj, properties);
-            }
+            obj = create(obj, properties);
             obj.initialise && obj.initialise();
+            obj.initialize && obj.initialize(); // for the yanks...
             return obj;
         },
         
         factory: function(obj, type, properties){
-            var types = {};
+            var factory = api.create(Factory);
+            factory._target = obj;
             if (type && properties) {
-                types[type] = api.create(obj, properties, true);
+                factory._types[type] = api.create(obj, properties, true);
             }
-            return {
-                create: function(type, properties){
-                    if(type && !types[type]) {
-                        throw new TypeError();
-                    }
-                    return type ? api.create(types[type], properties, true) : api.create(obj, properties, true);
-                },
-                addType: function(type, properties){
-                    if(type && properties){
-                        types[type] = api.create(obj, properties, true);
-                    }
-                    return this;
-                },
-                removeType: function(type){
-                    delete types[type];
-                    return this;
-                },
-                clear: function(){
-                    types = {};
-                    return this;
-                },
-                _types: types
-            };
+            return factory;
         },
         
         adapter: function(obj, map){
-            if(Adapter.isPrototypeOf(obj)) {
-                throw new TypeError();
-            }
             var adapter = api.create(Adapter);
             for(var method in map) {
                 if (typeof map[method] === 'string') {
@@ -106,9 +104,11 @@
                     adapter[method] = createAdapterMethod(map[method], adapter);
                 }
             }
-            adapter._adaptedObject = obj;
+            adapter._target = obj;
             return adapter;
         },
+        
+        // possibly make #is, #isSome and #isAll work with constructor functions as well?
         
         is: function(object, target){
             if(!target || !('isPrototypeOf' in target)) {
@@ -143,12 +143,6 @@
                 }
             }
             return true;
-        },
-        
-        toClass: function(obj, init){
-            init || (init = obj.initialise || function(){});
-            init.prototype = create(obj);
-            return init;
         }
         
     };
