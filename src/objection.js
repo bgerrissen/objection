@@ -22,7 +22,7 @@
                 if(type && !this._types[type]) {
                     throw new TypeError();
                 }
-                return type ? api.create(this._types[type], properties, true) : api.create(this._target, properties, true);
+                return type ? api.create(this._types[type], properties) : api.create(this._target, properties);
             },
             addType: function(type, properties){
                 if(type && properties){
@@ -76,10 +76,12 @@
             return obj;
         },
         
-        create: function(obj, properties){
+        create: function(obj, properties, stopInitialiser){
             obj = create(obj, properties);
-            obj.initialise && obj.initialise();
-            obj.initialize && obj.initialize(); // for the yanks...
+            if (!stopInitialiser) {
+                obj.initialise && obj.initialise();
+                obj.initialize && obj.initialize(); // for the yanks...
+            }
             return obj;
         },
         
@@ -87,7 +89,7 @@
             var factory = api.create(Factory);
             factory._target = obj;
             if (type && properties) {
-                factory._types[type] = api.create(obj, properties, true);
+                factory._types[type] = api.create(obj, properties);
             }
             return factory;
         },
