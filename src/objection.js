@@ -13,8 +13,9 @@
     
     
     var slice = Array.prototype.slice,
+	
         Factory = {
-            initialise: function(){
+            constructor: function(){
                 this._target = {};
                 this._types = {};
             },
@@ -22,7 +23,7 @@
                 if(type && !this._types[type]) {
                     throw new TypeError();
                 }
-                return type ? api.create(this._types[type], properties) : api.create(this._target, properties);
+                return type ? createInstance(this._types[type], properties) : createInstance(this._target, properties);
             },
             addType: function(type, properties){
                 if(type && properties){
@@ -39,119 +40,118 @@
                 return this;
             }
         },
+		
         Adapter = {
-            initialise: function(){
+            constructor: function(){
                 this._target = {};
             }
-        };
-        
-    var createAdapterMethod = function(method, adapter){
-        return function(){
-            var result = method.apply(this._target, arguments);
-            return result === this._target ? adapter : result;
-        }
-    }
-    
-    var a = {i:1}, b = {__proto__:a}, empty = function(){};
-    
-    var create = Object.create ? Object.create : b.i ? function(obj, properties){
-        return properties ? api.augment({__proto__:obj}, properties, true) : {__proto__:obj};
-    } : function(obj, properties){
-        empty.prototype = obj;
-        obj = new empty();
-        return properties ? api.augment(obj, properties, true) : obj;
-    }
-    
-    var api = {
-        
-        augment: function(obj, provider, override){
-            if(!provider || !obj) {
-                return obj;
-            }
-            for(var property in provider) {
-                if(!obj[property] || override) {
-                    obj[property] = provider[property];
-                }
-            }
-            return obj;
         },
         
-        create: function(obj, properties, stopInitialiser){
-            obj = create(obj, properties);
-            if (!stopInitialiser) {
-                obj.initialise && obj.initialise();
-                obj.initialize && obj.initialize(); // for the yanks...
-            }
-            return obj;
-        },
+    	adapterMethod = function(method, adapter){
+	        return function(){
+	            var result = method.apply(this._target, arguments);
+	            return result === this._target ? adapter : result;
+	        }
+	    },
+		
+		Obj = function(obj, properties){
+			obj = api.create(obj, properties);
+			obj.constructor && obj.constructor();
+			return obj;
+		},
+		
+		api = {
         
-        factory: function(obj, type, properties){
-            var factory = api.create(Factory);
-            factory._target = obj;
-            if (type && properties) {
-                factory._types[type] = api.create(obj, properties);
-            }
-            return factory;
-        },
-        
-        adapter: function(obj, map){
-            var adapter = api.create(Adapter);
-            for(var method in map) {
-                if (typeof map[method] === 'string') {
-                    if(typeof obj[map[method]] !== 'function') {
-                        throw new TypeError();
-                    }
-                    adapter[method] = createAdapterMethod(obj[map[method]], adapter);
-                } else if(typeof map[method] === 'function') {
-                    adapter[method] = createAdapterMethod(map[method], adapter);
-                }
-            }
-            adapter._target = obj;
-            return adapter;
-        },
-        
-        // possibly make #is, #isSome and #isAll work with constructor functions as well?
-        
-        is: function(object, target){
-            if(!target || !('isPrototypeOf' in target)) {
-                throw new TypeError();
-            }
-            return target.isPrototypeOf(object) || target === object;
-        },
-        
-        isSome: function(object /*, targets */){
-            var list = slice.call(arguments, 1),
-                i = list.length;
-            while(i--) {
-                if(!('isPrototypeOf' in list[i])) {
-                    throw new TypeError();
-                }
-                if(list[i].isPrototypeOf(object) || list[i] === object) {
-                    return true;
-                }
-            }
-            return false;
-        },
-        
-        isAll: function(object /*, targets */){
-            var list = slice.call(arguments, 1),
-                i = list.length;
-            while(i--) {
-                if(!('isPrototypeOf' in list[i])) {
-                    throw new TypeError();
-                }
-                if(!list[i].isPrototypeOf(object) && list[i] !== object) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        
-    };
+	        augment: function(obj, provider, override){
+	            if(!provider || !obj) {
+	                return obj;
+	            }
+	            for(var property in provider) {
+	                if(!obj[property] || override) {
+	                    obj[property] = provider[property];
+	                }
+	            }
+	            return obj;
+	        },
+	        
+	        create: Object.create ? Object.create : '__proto__' in {} ? function(obj, properties){
+		        return properties ? api.augment({__proto__:obj}, properties, 1) : {__proto__:obj};
+		    } : function(obj, properties){
+		        empty.prototype = obj;
+		        obj = new empty();
+		        return properties ? api.augment(obj, properties, 1) : obj;
+		    },
+	        
+	        factory: function(obj, type, properties){
+	            var factory = Obj(Factory);
+	            factory._target = obj;
+	            if (type && properties) {
+	                factory._types[type] = api.create(obj, properties);
+	            }
+	            return factory;
+	        },
+	        
+	        adapter: function(obj, map){
+	            var adapter = Obj(Adapter);
+	            for(var method in map) {
+	                if (typeof map[method] === 'string') {
+	                    if(typeof obj[map[method]] !== 'function') {
+	                        throw new TypeError();
+	                    }
+	                    adapter[method] = adapterMethod(obj[map[method]], adapter);
+	                } else if(typeof map[method] === 'function') {
+	                    adapter[method] = adapterMethod(map[method], adapter);
+	                }
+	            }
+	            adapter._target = obj;
+	            return adapter;
+	        },
+	        
+	        is: function(obj, target){
+				typeof target === 'function' && (target = target.prototype);
+	            return target.isPrototypeOf(obj) || target === obj;
+	        },
+			
+			owns: function(obj, property){
+				return obj.hasOwnProperty(property);
+			},
+			
+			has: function(obj, property){
+				return !!obj[property];
+			}
+	        
+	    };
+	
+	(function(){
+		
+		function expect(method, exp){
+			return function(obj /*, candidates*/){
+				var list = slice.call(arguments, 1),
+					i = list.length;
+				while(i--){
+					if(method(obj, list[i]) === exp) {
+						return exp;
+					}
+				}
+				return !exp;
+			}
+		}
+		
+		var someAll = 'is owns has'.split(/ /),
+			cur;
+			
+		while((cur = someAll.pop())){
+			api[cur+'All'] = expect(api[cur], false);
+			api[cur+'Some'] = expect(api[cur], true);
+		}
+		
+	}());
+	
+	
     
-    api = api.augment(api.create, api, true);
+    api.augment(Obj, api, true);
     
-    global.Objection = api;
-    global.Obj || (global.Obj = api);
+    global.Objection = Obj;
+    global.Obj || (global.Obj = Obj);
     
-}(window||this));
+}(this));
