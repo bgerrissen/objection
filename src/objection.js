@@ -23,7 +23,7 @@
                 if(type && !this._types[type]) {
                     throw new TypeError();
                 }
-                return type ? createInstance(this._types[type], properties) : createInstance(this._target, properties);
+                return type ? Obj(this._types[type], properties) : Obj(this._target, properties);
             },
             addType: function(type, properties){
                 if(type && properties){
@@ -47,18 +47,18 @@
             }
         },
         
+        Obj = function(obj, properties){
+			obj = api.create(obj, properties);
+			obj.constructor && obj.constructor();
+			return obj;
+		},
+        
     	adapterMethod = function(method, adapter){
 	        return function(){
 	            var result = method.apply(this._target, arguments);
 	            return result === this._target ? adapter : result;
 	        }
 	    },
-		
-		Obj = function(obj, properties){
-			obj = api.create(obj, properties);
-			obj.constructor && obj.constructor();
-			return obj;
-		},
 		
 		api = {
         
@@ -81,13 +81,13 @@
 		        obj = new empty();
 		        return properties ? api.augment(obj, properties, 1) : obj;
 		    },
+		    
+		    construct: Obj,
 	        
-	        factory: function(obj, type, properties){
+			factory: function(obj, type, properties){
 	            var factory = Obj(Factory);
 	            factory._target = obj;
-	            if (type && properties) {
-	                factory._types[type] = api.create(obj, properties);
-	            }
+	            type && properties && (factory._types[type] = api.create(obj, properties));
 	            return factory;
 	        },
 	        
@@ -118,7 +118,31 @@
 			
 			has: function(obj, property){
 				return !!obj[property];
-			}
+			},
+			
+			each: Object.forEach || function(obj, func /*, thisArg */){
+	            var thisArg = arguments[2] || obj;
+	            for(var property in obj) {
+	                obj.hasOwnProperty(property) && func.call(thisArg, obj[property], property, obj);
+	            }
+	            return obj;
+	        },
+	        
+	        keys: Object.keys ? Object.keys : function(obj){
+	            var result = [];
+	            for(var key in obj) {
+	                obj.hasOwnProperty(key) && result.push(key);
+	            }
+	            return result;
+	        },
+	        
+	        values: Object.values ? Object.values : function(obj){
+	            var result = [];
+	            for(var key in obj) {
+	                obj.hasOwnProperty(key) && result.push(obj[key]);
+	            }
+	            return result;
+	        }
 	        
 	    };
 	
@@ -148,10 +172,9 @@
 	}());
 	
 	
-    
+    api.forEach = api.each;
     api.augment(Obj, api, true);
     
-    global.Objection = Obj;
-    global.Obj || (global.Obj = Obj);
+    global.Objection = global.Obj = Obj;
     
 }(this));

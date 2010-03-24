@@ -56,21 +56,7 @@ Riot.run(function(){
             
         });
         
-        given('2.2 object creation/instantiation with initialiser', function(){
-            
-            var base = {
-                initialise: function(){
-                    this.name = 'piet';
-                }
-            };
-            
-            var instance = Obj.create(base);
-
-            should('contain same name which is piet', instance.name).equals('piet');
-            
-        });
-        
-        given('2.3 object creation/instantiation with extra properties', function(){
+        given('2.2 object creation/instantiation with extra properties', function(){
             
             var base = {
                 id: 1
@@ -94,12 +80,14 @@ Riot.run(function(){
     
     context('3. Objection#is test', function(){
         
-        mammal = {};
+        var Mammal = function(){}
+        var mammal = new Mammal();
         var feline = Obj.create(mammal);
         var cat = Obj.create(feline);
         var canine = Obj.create(mammal);
         var dog = Obj.create(canine);
         
+        asserts('a cat is an instance of Mammal', Obj.is(cat, Mammal)).isTrue();
         asserts('a cat is a mammal', Obj.is(cat, mammal)).isTrue();
         asserts('a cat is a feline', Obj.is(cat, feline)).isTrue();
         asserts('a cat is a cat', Obj.is(cat, cat)).isTrue();
@@ -110,7 +98,8 @@ Riot.run(function(){
     
     context('4. Objection#isSome test', function(){
         
-        var mammal = {};
+        var Mammal = function(){}
+        var mammal = new Mammal();
         var insect = {};
         var fish = {};
         var feline = Obj.create(mammal);
@@ -292,11 +281,152 @@ Riot.run(function(){
             asserts('Creature is prototype of mammal', Creature.isPrototypeOf(mammal)).isTrue();
             asserts('Creature is prototype of cat', Creature.isPrototypeOf(cat)).isTrue();
             asserts('Creature is prototype of dog', Creature.isPrototypeOf(dog)).isTrue();
+
+        });
+        
+    });
+    
+    context('8 Objection#construct', function(){
+        
+        given('8.1 constructor set',function(){
             
+            var Mammal = {
+                constructor: function(){
+                    this.id = 'mammal';
+                }
+            };
+            
+            var mammal = Obj.construct(Mammal);
+            
+            should('contain id "mammal"', mammal.id).equals('mammal');
             
         });
         
+    });
+    
+    context('9 Objection#has', function(){
+        
+        given('9.1 an object containing properties', function(){
+            
+            var obj = {
+                bar: 'bar',
+                foo: 'foo'
+            };
+            
+            asserts('contains "foo" property', Obj.has(obj, 'foo')).isTrue();
+            asserts('contains "bar" property', Obj.has(obj, 'bar')).isTrue();
+            
+        });
         
     });
+    context('10 Objection#hasSome', function(){
+        
+        given('10.1 an object containing properties', function(){
+            
+            var obj = {
+                bar: 'bar',
+                foo: 'foo'
+            };
+            
+            asserts('contains at least one of "foo", "car" properties', Obj.hasSome(obj, 'foo', 'car')).isTrue();
+            asserts('contains at least one of "foo", "bar" properties', Obj.hasSome(obj, 'foo', 'bar')).isTrue();
+            asserts('does not contain any of "car", "far" properties', Obj.hasSome(obj, 'car', 'far')).isFalse();
+            
+        });
+        
+    });
+    context('11 Objection#hasAll', function(){
+        
+        given('11.1 an object containing properties', function(){
+            
+            var obj = {
+                bar: 'bar',
+                foo: 'foo'
+            };
+            
+            asserts('contains all of "foo", "bar" properties', Obj.hasAll(obj, 'foo', 'bar')).isTrue();
+            asserts('does not contain "car"', Obj.hasAll(obj, 'car', 'bar')).isFalse();
+            
+        });
+        
+    });
+    context('12 Objection#owns', function(){
+        
+        given('12.1 an object containing properties', function(){
+            
+            var obj = {
+                boo: 'boo'
+            };
+            
+            obj = Obj.create(obj, {
+                bar: 'bar',
+                foo: 'foo'
+            });
+            
+            asserts('has own property "bar"', Obj.owns(obj, 'bar')).isTrue();
+            asserts('has own property "foo"', Obj.owns(obj, 'foo')).isTrue();
+            asserts('"boo" is not an own property', Obj.owns(obj, 'boo')).isFalse();
+            
+        });
+        
+    });
+    
+    context('13 Objection#ownsSome', function(){
+        
+        given('13.1 an object containing properties', function(){
+            
+            var obj = {
+                boo: 'boo'
+            };
+            
+            obj = Obj.create(obj, {
+                bar: 'bar',
+                foo: 'foo'
+            });
+            
+            asserts('has at least one own property: "bar", "foo", "boo"', Obj.ownsSome(obj, 'bar', 'foo', 'boo')).isTrue();
+            asserts('"boo" is not an own property', Obj.ownsSome(obj, 'boo')).isFalse();
+            
+        });
+        
+    });
+    
+    context('14 Objection#ownsAll', function(){});
+    
+    context('15 Objection#keys', function(){
+        
+        given('15.1 a hash', function(){
+            
+            var hash = {
+                a : 1,
+                b : 2
+            };
+            
+            var keys = Obj.keys(hash);
+            
+            should('contain 2 "own" items', keys.length).equals(2);
+            
+        });
+        
+        given('15.2 a hash drawn from another hash', function(){
+            
+            var hash = {
+                a : 1,
+                b : 2
+            };
+            
+            var delta = Obj.create(hash, {
+                c : 3
+            });
+            
+            var keys = Obj.keys(delta);
+            
+            should('contain 1 "own" items', keys.length).equals(1);
+            
+        });
+        
+    });
+    
+    context('16 Objection#values', function(){});
     
 });
