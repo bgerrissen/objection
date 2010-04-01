@@ -40,7 +40,7 @@ Riot.run(function(){
         
     });
     
-    context('2. Objection#create tests', function(){
+    context('2. Objection#clone tests', function(){
         
         given('2.1 object creation/instantiation without extra properties', function(){
             
@@ -48,7 +48,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var instance = Obj.create(base);
+            var instance = Obj.clone(base);
             
             asserts('is not exactly the same object', instance === base).isFalse();
             asserts('inherits from base object', base.isPrototypeOf(instance)).isTrue();
@@ -62,7 +62,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var instance = Obj.create(base, {
+            var instance = Obj.clone(base, {
                 name: 'jane',
                 gender: 'female',
                 id: 2
@@ -82,10 +82,10 @@ Riot.run(function(){
         
         var Mammal = function(){}
         var mammal = new Mammal();
-        var feline = Obj.create(mammal);
-        var cat = Obj.create(feline);
-        var canine = Obj.create(mammal);
-        var dog = Obj.create(canine);
+        var feline = Obj.clone(mammal);
+        var cat = Obj.clone(feline);
+        var canine = Obj.clone(mammal);
+        var dog = Obj.clone(canine);
         
         asserts('a cat is an instance of Mammal', Obj.is(cat, Mammal)).isTrue();
         asserts('a cat is a mammal', Obj.is(cat, mammal)).isTrue();
@@ -102,8 +102,8 @@ Riot.run(function(){
         var mammal = new Mammal();
         var insect = {};
         var fish = {};
-        var feline = Obj.create(mammal);
-        var cat = Obj.create(feline);
+        var feline = Obj.clone(mammal);
+        var cat = Obj.clone(feline);
         
         asserts('a cat is a mammal or an insect', Obj.isSome(cat, mammal, insect)).isTrue();
         asserts('a cat is neither an insect or a fish', Obj.isSome(cat, insect, fish)).isFalse();
@@ -115,8 +115,8 @@ Riot.run(function(){
         var mammal = {};
         var insect = {};
         var fish = {};
-        var feline = Obj.create(mammal);
-        var cat = Obj.create(feline);
+        var feline = Obj.clone(mammal);
+        var cat = Obj.clone(feline);
         
         asserts('a cat is a mammal and a feline', Obj.isAll(cat, mammal, feline)).isTrue();
         asserts('a cat is not both a mammal and a fish', Obj.isAll(cat, mammal, fish)).isFalse();
@@ -137,7 +137,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var adaptee = Obj.adapter(obj, {
+            var adaptee = Obj(Obj.Adapter, obj, {
                 met: 'method',
                 sel: 'self'
             });
@@ -166,7 +166,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var adaptee = Obj.adapter(obj, {
+            var adaptee = Obj(Obj.Adapter, obj, {
                 met: 'method',
                 sel: 'self'
             });
@@ -189,7 +189,7 @@ Riot.run(function(){
                 }
             };
             
-            var adaptee = Obj.adapter(obj,{
+            var adaptee = Obj(Obj.Adapter, obj,{
                 both: function(arg1, arg2, arg3){
                     return this.method1(arg1, arg2) + this.method2(arg3);
                 },
@@ -220,7 +220,7 @@ Riot.run(function(){
                 sound: 'makes a sound.'
             };
             
-            var MammalFactory = Obj.factory(Mammal);
+            var MammalFactory = Obj(Obj.Factory, Mammal);
             
             MammalFactory.addType('cat', {
                 intro: 'A cat',
@@ -255,7 +255,7 @@ Riot.run(function(){
                 }
             };
             
-            var MammalFactory = Obj.factory(Creature, 'mammal', {
+            var MammalFactory = Obj(Obj.Factory, Creature, {
                 intro: 'A mammal',
                 sound: 'makes a sound.'
             });
@@ -286,7 +286,7 @@ Riot.run(function(){
         
     });
     
-    context('8 Objection#construct', function(){
+    context('8 Objection', function(){
         
         given('8.1 constructor set',function(){
             
@@ -296,7 +296,7 @@ Riot.run(function(){
                 }
             };
             
-            var mammal = Obj.construct(Mammal);
+            var mammal = Obj(Mammal);
             
             should('contain id "mammal"', mammal.id).equals('mammal');
             
@@ -358,7 +358,7 @@ Riot.run(function(){
                 boo: 'boo'
             };
             
-            obj = Obj.create(obj, {
+            obj = Obj.clone(obj, {
                 bar: 'bar',
                 foo: 'foo'
             });
@@ -379,7 +379,7 @@ Riot.run(function(){
                 boo: 'boo'
             };
             
-            obj = Obj.create(obj, {
+            obj = Obj.clone(obj, {
                 bar: 'bar',
                 foo: 'foo'
             });
@@ -415,7 +415,7 @@ Riot.run(function(){
                 b : 2
             };
             
-            var delta = Obj.create(hash, {
+            var delta = Obj.clone(hash, {
                 c : 3
             });
             
