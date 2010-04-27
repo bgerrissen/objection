@@ -3,7 +3,11 @@
  * 
  * @author Ben Gerrissen http://www.netben.nl/ bgerrissen@gmail.com
  * @license MIT
- * @release 
+ * @release
+ * 		v1.2
+ * 			- Obj()/Objection(), #augment and #clone can also accept a id string instead of a stored (#store) object.
+ * 			- added: #store
+ * 			- moved prototype patterns: Factory, Adapter, Publisher, Command to seperate files.
  * 		v1.1
  * 			- Obj()/Objection() now acts as a constructor (objects constructor method is called after cloning)
  * 			- new static methods: #keys, #values, #each, #isSome, #isAll, #has, #hasAll, #hasSome, #owns, #ownsSome, #ownsAll
@@ -14,16 +18,44 @@
  * 		v1.0 March 8th, 2010
  * 
  * 
- * @version 1.0
+ * @version 1.2
  * 
  */
 (function(global){
     
     
-    var slice = Array.prototype.slice, empty = function(){}
+    var slice = Array.prototype.slice, empty = function(){};
+    
+    var registry = {}, cache = {};
+    
+    var checkOut = function(namespace){
+    	var ref = registry, ns = namespace.split('.');
+    	var cached = cache[namespace] || cache[ns[ns.length-1]];
+    	if (!cached) throw 'No reference found: ' + namespace;
+    	if (cached.length > 1) throw 'Multiple references found, try using full namespace: ' + namespace;
+    	if(cached.length === 1){
+    		return cached[0];
+    	}
+    	do {
+    		ref = ref[ns[0]];
+    	} while (ns.shift() && ref && ns.length);
+    	if(!ref) throw 'No reference found: ' + namespace;
+    	return ref;
+    }
+    
+    var checkIn = function(namespace, obj){
+    	var ref = registry, ns = namespace.split('.');
+    	ns.length > 1 && (cache[namespace] ? cache[namespace].push(obj) : (cache[namespace] = [obj]));
+    	do {
+    		if(ns.length === 1 && ref[ns[0]]) throw 'Object already defined: ' + namespace;
+    		ref = ref[ns[0]] || (ref[ns[0]] = ns.length === 1 ? obj : {});
+    		ns.length === 1 && cache[ns[0]] ? cache[ns[0]].push(obj) : (cache[ns[0]] = [obj]); 
+    	} while (ns.shift() && ns.length);
+    }
 	
 	Obj = function(obj /*, arguments */){
-		typeof obj === 'function' && (obj.prototype.constructor = obj) && (obj = obj.prototype);
+		typeof obj === 'string' && (obj = checkOut(obj));
+		typeof obj === 'function' && (obj.prototype.constructor = obj) && ((obj.prototype.constructor = obj) && (obj = obj.prototype));
 		obj = Obj.clone(obj);
 		obj.constructor && (arguments.length > 1) ? obj.constructor.apply(obj, slice.call(arguments, 1)): obj.constructor();
 		return obj;
@@ -33,6 +65,7 @@
         if(!provider || !obj) {
             return obj;
         }
+        typeof obj === 'string' && (obj = checkOut(obj));
         for(var property in provider) {
             if(!obj[property] || override) {
                 obj[property] = provider[property];
@@ -44,15 +77,26 @@
 	Obj.augment(Obj, {
 		
         clone: ('__proto__' in {} ? function(obj, properties){
+        	typeof obj === 'string' && (obj = checkOut(obj));
 	        return properties ? Obj.augment({__proto__:obj}, properties, 1) : {__proto__:obj};
 	    } : function(obj, properties){
+	    	typeof obj === 'string' && (obj = checkOut(obj));
 			!obj.__proto__ && obj.constructor && (obj.__proto__ = obj.constructor.prototype);
 	        empty.prototype = obj;
 	        obj = new empty();
 			obj.__proto__ = empty.prototype;
 	        return properties ? Obj.augment(obj, properties, 1) : obj;
 	    }),
-        
+	    
+	    construct: Obj,
+	    
+	    store: function(namespace, from, properties){
+			from = (from && properties) ? Obj.clone(from, properties) : Obj.clone(from);
+			from.oType = namespace.split('.').pop();
+			checkIn(namespace, from);
+			return this;
+		},
+	    
         is: function(obj, target){
 			typeof obj === 'string' && target === String && (target = obj);
 			typeof target === 'function' && (target = target.prototype);
@@ -67,191 +111,27 @@
 			return !!obj[property];
 		},
 		
-		each: function(obj, handler){
+		each: function(obj, handler, all){
 			for(var key in obj){
-				Obj.owns(obj, key) && handler.call(obj, key, obj[key]);
+				(all || Obj.owns(obj, key)) && handler.call(obj, key, obj[key]);
 			}
 			return this;
 		},
 		
-		keys: function(obj){
+		keys: function(obj, all){
 			var result = [];
 			for(var key in obj){
-				Obj.owns(obj, key) && result.push(key);
+				(all || Obj.owns(obj, key)) && result.push(key);
 			}
 			return result;
 		},
 		
-		values: function(obj){
+		values: function(obj, all){
 			var result = [];
 			for(var key in obj){
-				Obj.owns(obj, key) && result.push(obj[key]);
+				(all || Obj.owns(obj, key)) && result.push(obj[key]);
 			}
 			return result;
-		},
-		
-		/* pondering moving below patterns out of objection */
-		Factory: {
-			constructor: function(obj, properties){
-				this._blueprint = Obj.clone(obj, properties);
-            	this._types = {};
-			},
-			create: function(type /* arguments */){
-				(type && (type = this._types[type])) || (type = this._blueprint);
-				var args = [type].concat(slice.call(arguments, 1));
-                return Obj.apply(null, args);
-            },
-            addType: function(type, properties){
-                type && properties && (this._types[type] = Obj.clone(this._blueprint, properties));
-                return this;
-            },
-            removeType: function(type){
-                delete this._types[type];
-                return this;
-            },
-            clear: function(){
-                this._types = {};
-                return this;
-            }
-		},
-		
-		Adapter: {
-			constructor: function(obj, map){
-				this._adaptedObject && (this._adaptedObject = Obj.clone(this._adaptedObject));
-				!this._adaptedObject && (this._adaptedObject = obj || {});
-				for(var method in map){
-					typeof map[method] === 'string' && !obj[map[method]] && (this[method] = 'method missing: ' + map[method]);
-					typeof map[method] === 'string' && (this[method] = this._adaptMethod(obj[map[method]]));
-					typeof map[method] === 'function' && (this[method] = this._adaptMethod(map[method]));
-				}
-			},
-			_adaptMethod: function(method){
-				function adapterMethod(){
-		            var result = method.apply(this._adaptedObject, arguments);
-		            return result === this._adaptedObject ? this : result;
-		        }
-				return adapterMethod;
-			}
-		},
-		
-		Publisher: {
-			constructor: function(){
-				this._subscribers = {};
-				this.Event = Obj.clone(this.Event);
-			},
-			subscribe: function(event, subscriber){
-				return (this._subscribers[event] || (this._subscribers[event] = [])).unshift(subscriber), this;
-			},
-			unsubscribe: function(event, subscriber){
-				var list = this._subscribers[event]||(this._subscribers[event] = []),
-					i = list.length;
-				while(i--){
-					list[i] === subscriber && list.splice(i, 1);
-				}
-				return this;
-			},
-			publish: function(event, data){
-				data = Obj.is(data, this.Event) ? data : Obj(this.Event, event, data, this);
-				data.currentTarget = this;
-				var list = this._subscribers[event]||(this._subscribers[event] = []),
-					i = list.length;
-				while(i--){
-					data.currentHandler = list[i];
-					typeof list[i] === 'function' && list[i].call(this,data);
-					list[i] && typeof list[i][event] === 'function'  && list[i][event](data);
-					if(event.stopped) break;
-				}
-				return this;
-			},
-			Event: {
-				constructor: function(event, data, target){
-					this.type = event;
-					this.target = target;
-					Obj.augment(this, data, true);
-				},
-				remove: function(){
-					this.currentTarget.unsubscribe(this.type, this.currentHandler);
-				},
-				stop: function(){
-					this.stopped = true;
-				}
-			}
-		},
-		
-		Command: {
-			constructor: function(descriptors){
-				this._commands = [];
-				if(descriptors){
-					for(var i=0, len = arguments.length;i<len;i++){
-						this.add(arguments[i]);
-					}
-				}
-			},
-			/* descriptor: {
-			 * 		object: AnObject,
-			 * 		method: 'methodName',
-			 * 		args: ['arg1', 'arg2', 'arg3'],
-			 * 		params: [null, 1, null]
-			 * }
-			 * 
-			 * */
-			add: function(descriptor){
-				this._commands.push(descriptor);
-				return this;
-			},
-			
-			addBefore: function(obj, method, descriptor){
-				var list = this._commands,
-					i = list.length;
-				while(i--){
-					if(list[i].object === obj && list[i].method === method){
-						list.splice(i, 0, descriptor);
-						break;
-					}
-				}
-				return this;
-			},
-			
-			addAfter: function(obj, method, descriptor){
-				var list = this._commands,
-					i = list.length;
-				while(i--){
-					if(list[i].object === obj && list[i].method === method){
-						list.splice(i+1, 0, descriptor);
-						break;
-					}
-				}
-				return this;
-			},
-			
-			remove: function(obj, method){
-				var list = this._commands,
-					i = list.length;
-				while(i--){
-					list[i].object === obj && list[i].method === method && list.splice(i, 1);
-				}
-				return this;
-			},
-			
-			exec: function(parms){
-				var list = this._commands,
-					len = list.length,
-					obj, args;
-				for(var i = 0;i<len;i++){
-					args = parms ? this._args(list[i], parms) : list[i].parms || [];
-					(obj = list[i].object) && obj[list[i].method].apply(obj, args);
-				}
-			},
-			
-			_args: function(desc, parms){
-				var args = [];
-				if(desc.args && desc.params){
-					for(var i=desc.args.length, c;c = desc.args[--i];){
-						args[i] = parms[c] ? parms[c] : desc.params[i];
-					}
-				}
-				return args;
-			}
 		}
         
     });
@@ -273,9 +153,11 @@
 		cur;
 		
 	while((cur = someAll.pop())){
-		Obj[cur+'All'] = expect(Obj[cur], false);
-		Obj[cur+'Some'] = expect(Obj[cur], true);
+		Obj[cur+'All'] = expect(Obj[cur], 0);
+		Obj[cur+'Some'] = expect(Obj[cur], 1);
 	}
+	
+	Obj.lib = registry;
     
     global.Objection = Obj;
     global.Obj || (global.Obj = Obj);
