@@ -28,29 +28,14 @@
     
     var registry = {}, cache = {};
     
-    var checkOut = function(namespace){
-    	var ref = registry, ns = namespace.split('.');
-    	var cached = cache[namespace] || cache[ns[ns.length-1]];
-    	if (!cached) throw 'No reference found: ' + namespace;
-    	if (cached.length > 1) throw 'Multiple references found, try using full namespace: ' + namespace;
-    	if(cached.length === 1){
-    		return cached[0];
-    	}
-    	do {
-    		ref = ref[ns[0]];
-    	} while (ns.shift() && ref && ns.length);
-    	if(!ref) throw 'No reference found: ' + namespace;
-    	return ref;
+    var checkOut = function(name){
+    	if(!registry[name]) throw 'No reference found: ' + name;
+    	return registry[name];
     }
     
-    var checkIn = function(namespace, obj){
-    	var ref = registry, ns = namespace.split('.');
-    	ns.length > 1 && (cache[namespace] ? cache[namespace].push(obj) : (cache[namespace] = [obj]));
-    	do {
-    		if(ns.length === 1 && ref[ns[0]]) throw 'Object already defined: ' + namespace;
-    		ref = ref[ns[0]] || (ref[ns[0]] = ns.length === 1 ? obj : {});
-    		ns.length === 1 && cache[ns[0]] ? cache[ns[0]].push(obj) : (cache[ns[0]] = [obj]); 
-    	} while (ns.shift() && ns.length);
+    var checkIn = function(name, obj){
+    	if(registry[name]) throw 'Object already defined: ' + name;
+    	registry[name] = obj;
     }
 	
 	Obj = function(obj /*, arguments */){
