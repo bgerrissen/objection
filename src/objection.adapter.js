@@ -1,4 +1,4 @@
-Objection.store('Adapter', {
+Objection.store('adapter', {
 	constructor: function(obj, map){
 		this._adaptedObject && (this._adaptedObject = Obj.clone(this._adaptedObject));
 		!this._adaptedObject && (this._adaptedObject = obj || {});

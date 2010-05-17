@@ -26,7 +26,7 @@
     
     var slice = Array.prototype.slice, empty = function(){};
     
-    var registry = {}, cache = {};
+    var registry = {};
     
     var checkOut = function(name){
     	if(!registry[name]) throw 'No reference found: ' + name;
@@ -38,7 +38,7 @@
     	registry[name] = obj;
     }
 	
-	Obj = function(obj /*, arguments */){
+	function Obj(obj /*, arguments */){
 		typeof obj === 'string' && (obj = checkOut(obj));
 		typeof obj === 'function' && (obj.prototype.constructor = obj) && ((obj.prototype.constructor = obj) && (obj = obj.prototype));
 		obj = Obj.clone(obj);
@@ -68,17 +68,17 @@
 	    	typeof obj === 'string' && (obj = checkOut(obj));
 			!obj.__proto__ && obj.constructor && (obj.__proto__ = obj.constructor.prototype);
 	        empty.prototype = obj;
-	        obj = new empty();
+	        obj = new empty;
 			obj.__proto__ = empty.prototype;
 	        return properties ? Obj.augment(obj, properties, 1) : obj;
 	    }),
 	    
 	    construct: Obj,
 	    
-	    store: function(namespace, from, properties){
+	    store: function(name, from, properties){
 			from = (from && properties) ? Obj.clone(from, properties) : Obj.clone(from);
-			from.oType = namespace.split('.').pop();
-			checkIn(namespace, from);
+			from.oType = name;
+			checkIn(name, from);
 			return this;
 		},
 	    

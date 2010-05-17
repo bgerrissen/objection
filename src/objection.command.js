@@ -1,4 +1,5 @@
-Objection.store('Command', {
+Objection.store('command', {
+	
 	constructor: function(descriptors){
 		this._commands = [];
 		if(descriptors){
@@ -29,7 +30,7 @@ Objection.store('Command', {
 		return this;
 	},
 	
-	exec: function(parms){
+	run: function(parms){
 		var list = this._commands,
 			len = list.length,
 			obj, args;

@@ -1,4 +1,5 @@
-Objection.store('Event', {
+Objection.store('event', {
+	
 	constructor: function(event, data, target){
 		this.type = event;
 		this.target = target;
@@ -12,7 +13,7 @@ Objection.store('Event', {
 	}
 });
 
-Objection.store('Publisher', {
+Objection.store('publisher', {
 	constructor: function(){
 		this._subscribers = {};
 	},
@@ -28,7 +29,7 @@ Objection.store('Publisher', {
 		return this;
 	},
 	publish: function(event, data){
-		data = Obj('Event', event, data, this);
+		data = Obj('event', event, data, this);
 		data.currentTarget = this;
 		!data.target && (data.target = this);
 		var list = this._subscribers[event]||(this._subscribers[event] = []),
