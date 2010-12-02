@@ -137,7 +137,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var adaptee = Obj(Obj.Adapter, obj, {
+            var adaptee = Obj( "adapter" , obj, {
                 met: 'method',
                 sel: 'self'
             });
@@ -166,7 +166,7 @@ Riot.run(function(){
                 id: 1
             };
             
-            var adaptee = Obj(Obj.Adapter, obj, {
+            var adaptee = Obj( "adapter" , obj, {
                 met: 'method',
                 sel: 'self'
             });
@@ -189,7 +189,7 @@ Riot.run(function(){
                 }
             };
             
-            var adaptee = Obj(Obj.Adapter, obj,{
+            var adaptee = Obj("adapter", obj,{
                 both: function(arg1, arg2, arg3){
                     return this.method1(arg1, arg2) + this.method2(arg3);
                 },
@@ -220,7 +220,7 @@ Riot.run(function(){
                 sound: 'makes a sound.'
             };
             
-            var MammalFactory = Obj(Obj.Factory, Mammal);
+            var MammalFactory = Obj("factory", Mammal);
             
             MammalFactory.addType('cat', {
                 intro: 'A cat',
@@ -255,7 +255,7 @@ Riot.run(function(){
                 }
             };
             
-            var MammalFactory = Obj(Obj.Factory, Creature, {
+            var MammalFactory = Obj("factory", Creature, {
                 intro: 'A mammal',
                 sound: 'makes a sound.'
             });

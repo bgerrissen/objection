@@ -4,6 +4,10 @@
  * @author Ben Gerrissen http://www.netben.nl/ bgerrissen@gmail.com
  * @license MIT
  * @release
+ *      v1.3
+ *          - Removed premature optimalisation from source
+ *          - #isAll, #hasAll, #isSome, #hasSome, #ownsSome, ownsAll now return proper boolean values
+ *          - new static methods: #type
  * 		v1.2
  * 			- Obj()/Objection(), #augment and #clone can also accept a id string instead of a stored (#store) object.
  * 			- added: #store
@@ -24,127 +28,269 @@
 (function(global){
     
     
-    var slice = Array.prototype.slice, empty = function(){};
+    var slice = Array.prototype.slice
+    , toTypeString = Object.prototype.toString
+    , empty = function(){}
+    , registry = {}
     
-    var registry = {};
-    
-    var checkOut = function(name){
-    	if(!registry[name]) throw 'No reference found: ' + name;
-    	return registry[name];
+    , checkOut = function ( name ) {
+
+    	if ( !registry[ name ] ) {
+
+            throw "No reference found for: '" + name + "'";
+
+        }
+
+    	return registry[ name ];
+
     }
     
-    var checkIn = function(name, obj){
-    	if(registry[name]) throw 'Object already defined: ' + name;
-    	registry[name] = obj;
+    , checkIn = function ( name , obj ) {
+
+    	if ( registry[ name ] ) {
+
+            throw "Another Object is already stored under name: '" + name + "'";
+
+        }
+
+    	registry[ name ] = obj;
+
     }
-	
-	function Obj(obj /*, arguments */){
-		typeof obj === 'string' && (obj = checkOut(obj));
-		typeof obj === 'function' && (obj.prototype.constructor = obj) && ((obj.prototype.constructor = obj) && (obj = obj.prototype));
-		obj = Obj.clone(obj);
-		obj.constructor && (arguments.length > 1) ? obj.constructor.apply(obj, slice.call(arguments, 1)): obj.constructor();
-		return obj;
-	}
-	
-	Obj.augment = function(obj, provider, override){
-        if(!provider || !obj) {
-            return obj;
+
+    , touch = function ( obj ) {
+
+        if ( typeof obj === "string" ) {
+
+            return checkOut( obj );
+
         }
-        typeof obj === 'string' && (obj = checkOut(obj));
-        for(var property in provider) {
-            if(!obj[property] || override) {
-                obj[property] = provider[property];
-            }
-        }
+
         return obj;
+
     }
-	
-	Obj.augment(Obj, {
+
+    , Obj = function ( obj /* [ , arguments ] */ ) {
+
+        obj = touch( obj );
+
+        if ( typeof obj === "function" ) {
+
+            obj.prototype.constructor = obj;
+            obj = obj.prototype;
+
+        }
+
+        obj = clone( obj );
+
+        if ( obj.constructor ) {
+
+            obj.constructor.apply( obj , slice.call( arguments , 1 ) );
+
+        }
+
+        return obj;
+
+    }
+
+    , augment = Obj.augment = function ( obj , provider , override ) {
+
+        if ( !provider || !obj ) {
+
+            return obj;
+
+        }
+
+        obj = touch( obj );
+
+        for ( var property in provider ) {
+
+            if ( !obj[ property ] || override ) {
+
+                obj[ property ] = provider[ property ];
+
+            }
+
+        }
+
+        return obj;
+
+    }
+
+    , clone = Obj.clone = ( "__proto__" in {} ) ? function ( obj , properties ) {
+
+        obj = touch( obj );
+        obj = {
+            __proto__ : obj
+        };
+
+        return augment( obj , properties , true );
+
+    } : function ( obj , properties ) {
+
+        obj = touch( obj );
+        empty.prototype = obj;
+        obj = new empty;
+
+        return augment( obj , properties , true );
+
+    }
+
+    , store = Obj.store = function ( name , obj , properties ) {
+
+        checkIn( name , clone( obj , properties ) );
+
+        return this;
+    }
+
+    , type = Obj.type = function ( obj ) {
+
+        return toTypeString.call( obj ).replace( /\[object\s|\]/g , "" ).toLowerCase();
+
+    }
+
+    , is = Obj.is = function ( obj , target ) {
+
+        var targetType = type( target );
+
+        if ( targetType === "object" ) {
+
+            return target === obj || target.isPrototypeOf( obj );
+
+        } else if ( targetType === "function" ) {
+
+            return target === obj || target.prototype.isPrototypeOf( obj );
+
+        }
+
+        return target === obj;
+
+    }
+
+    , owns = Obj.owns = function ( obj , property ) {
+
+        return obj.hasOwnProperty( property );
+
+    }
+
+    , has = Obj.has = function ( obj , property ) {
+
+        return !!obj[ property ];
+
+    }
+
+    , each = Obj.each = function ( obj , handler , all ) {
+
+        var i, len;
+
+        if ( /string|array/.test( type( obj ) ) ) {
+
+            i = 0;
+            len = obj.length;
+
+            do {
+
+                handler.call( obj[ i ] , i , obj[ i ] , obj );
+
+            } while ( i++ < len );
+
+        } else {
+
+            for ( i in obj ) {
+
+                if ( all || !owns( obj , i ) ) {
+
+                    handler.call( obj[ i ] , i , obj[ i ] , obj );
+
+                }
+
+            }
+
+        }
+
+        return this;
+
+    }
+
+    , keys = Obj.keys = function ( obj , all ) {
+
+        var result = []
+        , key;
+
+        for ( key in obj ) {
+
+            if ( all || owns( obj , key ) ) {
+
+                result.push( key );
+
+            }
+
+        }
+
+        return result;
+
+    }
+
+    , values = Obj.values = function ( obj , all ) {
+        
+        var result = []
+        , key;
+
+        for ( key in obj ) {
+
+            if ( all || owns( obj , key ) ) {
+
+                result.push( obj[ key ] );
+
+            }
+
+        }
+
+        return result;
+
+    }
 		
-        clone: ('__proto__' in {} ? function(obj, properties){
-        	typeof obj === 'string' && (obj = checkOut(obj));
-	        return properties ? Obj.augment({__proto__:obj}, properties, 1) : {__proto__:obj};
-	    } : function(obj, properties){
-	    	typeof obj === 'string' && (obj = checkOut(obj));
-			!obj.__proto__ && obj.constructor && (obj.__proto__ = obj.constructor.prototype);
-	        empty.prototype = obj;
-	        obj = new empty;
-			obj.__proto__ = empty.prototype;
-	        return properties ? Obj.augment(obj, properties, 1) : obj;
-	    }),
-	    
-	    construct: Obj,
-	    
-	    store: function(name, from, properties){
-			from = (from && properties) ? Obj.clone(from, properties) : Obj.clone(from);
-			from.oType = name;
-			checkIn(name, from);
-			return this;
-		},
-	    
-        is: function(obj, target){
-			typeof obj === 'string' && target === String && (target = obj);
-			typeof target === 'function' && (target = target.prototype);
-            return target === obj || target.isPrototypeOf(obj);
-        },
-		
-		owns: function(obj, property){
-			return obj.hasOwnProperty(property);
-		},
-		
-		has: function(obj, property){
-			return !!obj[property];
-		},
-		
-		each: function(obj, handler, all){
-			for(var key in obj){
-				(all || Obj.owns(obj, key)) && handler.call(obj, key, obj[key]);
+	, expect = function ( method , exp ){
+
+		return function( obj /* [ , candidates ] */ ) {
+
+			var list = slice.call(arguments, 1)
+		    , i = list.length;
+
+			while ( i-- ) {
+
+				if( method( obj , list[i] ) === exp ) {
+
+					return exp;
+
+				}
+
 			}
-			return this;
-		},
-		
-		keys: function(obj, all){
-			var result = [];
-			for(var key in obj){
-				(all || Obj.owns(obj, key)) && result.push(key);
-			}
-			return result;
-		},
-		
-		values: function(obj, all){
-			var result = [];
-			for(var key in obj){
-				(all || Obj.owns(obj, key)) && result.push(obj[key]);
-			}
-			return result;
+
+			return !exp;
+
 		}
         
-    });
-		
-	function expect(method, exp){
-		return function(obj /*, candidates*/){
-			var list = slice.call(arguments, 1),
-				i = list.length;
-			while(i--){
-				if(method(obj, list[i]) === exp) {
-					return exp;
-				}
-			}
-			return !exp;
-		}
 	}
 	
-	var someAll = 'is owns has'.split(/ /),
-		cur;
+	, someAll = "is owns has".split(" ")
+    , cur;
 		
-	while((cur = someAll.pop())){
-		Obj[cur+'All'] = expect(Obj[cur], 0);
-		Obj[cur+'Some'] = expect(Obj[cur], 1);
+	while( ( cur = someAll.pop() ) ) {
+
+		Obj[ cur + "All" ] = expect( Obj[ cur ] , false );
+		Obj[ cur + "Some" ] = expect( Obj[ cur ] , true );
+
 	}
-	
+
+    Obj.construct = Obj;
 	Obj.lib = registry;
     
     global.Objection = Obj;
-    global.Obj || (global.Obj = Obj);
+
+    if ( !global.Obj ) {
+
+        global.Obj = Obj;
+
+    }
     
 }(this));

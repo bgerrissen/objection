@@ -1,4 +1,5 @@
-Objection.store('adapter', {
+Objection.store( "adapter" , {
+
 	constructor: function(obj, map){
 		this._adaptedObject && (this._adaptedObject = Obj.clone(this._adaptedObject));
 		!this._adaptedObject && (this._adaptedObject = obj || {});
@@ -8,6 +9,7 @@ Objection.store('adapter', {
 			typeof map[method] === 'function' && (this[method] = this._adaptMethod(map[method]));
 		}
 	},
+
 	_adaptMethod: function(method){
 		function adapterMethod(){
 	        var result = method.apply(this._adaptedObject, arguments);
@@ -15,4 +17,5 @@ Objection.store('adapter', {
 	    }
 		return adapterMethod;
 	}
+    
 });
