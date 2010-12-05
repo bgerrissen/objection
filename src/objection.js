@@ -4,14 +4,17 @@
  * @author Ben Gerrissen http://www.netben.nl/ bgerrissen@gmail.com
  * @license MIT
  * @release
+ * 
  *      v1.3
  *          - Removed premature optimalisation from source
  *          - #isAll, #hasAll, #isSome, #hasSome, #ownsSome, ownsAll now return proper boolean values
  *          - new static methods: #type
+ *
  * 		v1.2
  * 			- Obj()/Objection(), #augment and #clone can also accept a id string instead of a stored (#store) object.
  * 			- added: #store
  * 			- moved prototype patterns: Factory, Adapter, Publisher, Command to seperate files.
+ *
  * 		v1.1
  * 			- Obj()/Objection() now acts as a constructor (objects constructor method is called after cloning)
  * 			- new static methods: #keys, #values, #each, #isSome, #isAll, #has, #hasAll, #hasSome, #owns, #ownsSome, #ownsAll
@@ -19,6 +22,7 @@
  * 			- removed: #factory in favor of prototype pattern
  * 			- removed: #adapter in favor of prototype pattern
  * 			- added prototype patterns: #Factory, #Adapter, #Publisher, #Command
+ * 
  * 		v1.0 March 8th, 2010
  * 
  * 
